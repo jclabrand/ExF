@@ -5,13 +5,11 @@ class User {
 			this.userName = userData.userName;
 			this.displayName = userData.displayName;
 			this.mail = userData.mail;
-			this.picture = userData.picture;
 			this.roles = userData.roles;
 		} else {
 			this.userName =
 			this.displayName =
 			this.mail =
-			this.picture = '';
 			this.roles = ['guest'];
 		}
 	}

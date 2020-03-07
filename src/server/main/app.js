@@ -5,9 +5,15 @@ import path from 'path';
 import express from 'express';
 import jsonfile from 'jsonfile';
 import { renderToString } from 'react-dom/server';
+import { ApolloServer } from 'apollo-server-express';
+import cors from 'cors';
+
+import Auth from '../gears/auth';
 
 import ViewsControlller from '../controllers/views-controller';
+
 import Routes from './routes';
+import ApiCore from './api-core';
 
 /****************************************************************************************/
 
@@ -16,8 +22,6 @@ class App {
 		this.config = jsonfile.readFileSync(path.join(__dirname, 'config.json'));
 
 		this.express = express();
-		this.express.use(express.static(path.join(__dirname, 'assets')));
-		this.express.use(this.onRequest.bind(this));
         
 		this.init();
 	}
@@ -27,8 +31,27 @@ class App {
 			views: new ViewsControlller()
 		};
 
-		this.routes = new Routes(this);
+		this.auth = new Auth(this.config.auth);
 
+		this.routes = new Routes(this);
+		this.api = new ApiCore();
+
+		this.graphql = new ApolloServer({
+			schema: this.api.schema,
+			context: async ({req}) => ({
+				config: this.config,
+				req: {
+					headers: req.headers,
+					body: req.body
+				},
+				auth: this.auth,
+			})
+		});
+
+		this.express.use(cors());
+		this.express.use(express.static(path.join(__dirname, 'assets')));
+		this.express.use(this.onRequest.bind(this));
+		this.graphql.applyMiddleware({ app: this.express });
 		this.express.use('/', this.routes.router);
 
 		this.server = http.createServer(this.express);
